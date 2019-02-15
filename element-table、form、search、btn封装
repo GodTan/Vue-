@@ -1,0 +1,529 @@
+<template>
+  <div>
+    <el-form ref="form" :model="form" class="txw-search">
+      <el-select v-model="selectValue" @change="searchSelect" placeholder="请选择">
+        <el-option
+          v-for="(item,index) in searchItem"
+          :key="index"
+          :label="item.label"
+          :value="item.value">
+        </el-option>
+      </el-select>
+      <div class="txw-search">
+        <el-input v-if="selectType === ''" placeholder="请选择搜索类型" disabled=""
+                  class="input-with-select"></el-input>
+        <el-input v-if="selectType === '1'" placeholder="请输入内容" v-model="form[active]"
+                  class="input-with-select"></el-input>
+        <el-date-picker
+          style="width: 100%"
+          v-if="selectType === '2'"
+          v-model="form[active]"
+          type="datetimerange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期">
+        </el-date-picker>
+        <el-select style="width: 100%" v-if="selectType === '3'" class="txw-search-item" v-model="form[active]"
+                   placeholder="请选择">
+          <el-option v-for="(item,index) in optionArray" :key="index" :label="item.label"
+                     :value="item.value"></el-option>
+        </el-select>
+      </div>
+      <el-button type="success" @click="searchFun" icon="el-icon-search txw-search"></el-button>
+      <el-button type="danger" @click="restForm" icon="el-icon-delete txw-search"></el-button>
+      <el-button type="primary" @click="addFun" icon="el-icon-circle-plus txw-search"></el-button>
+    </el-form>
+  </div>
+</template>
+
+<script>
+  /***
+   * 组件参数格式
+   * {label:'搜索字段名称',value:'搜索字段值',type:'搜索类型',name:'后台接受字段'},
+   * {label:'搜索字段名称',value:'搜索字段值',type:'搜索类型',name:'后台接受字段',options:['select选项']}
+   */
+  export default {
+    name: 'txw-search',
+    props: {
+      searchItem: {
+        type: Array,
+        default: () => {
+        }
+      },
+      search: {
+        type: Function,
+        default: () => {
+
+        }
+      },
+      add: {
+        type: Function,
+        default: () => {
+
+        }
+      }
+    },
+    created () {
+      /*****
+       * 动态设置mode
+       * @type {searchItem|{type, default}}
+       */
+      let a = this.searchItem;
+      let that = this;
+      let s = '{';
+      a.forEach(function (item, index) {
+        if (index === a.length - 1) {
+          s += '"' + item.name + '":""}'
+        } else {
+          s += '"' + item.name + '":"",'
+        }
+      })
+      this.form = JSON.parse(s)
+    },
+    data () {
+      return {
+        form: {},
+        active: '',
+        selectType: '',
+        selectValue: '',
+        optionArray: []
+      }
+    },
+    methods: {
+      /***
+       * 获取选中搜索条件方法
+       */
+      searchSelect () {
+        this.form = {}
+        let a = this.searchItem
+        let that = this
+        let s = '{'
+        a.forEach(function (item, index) {
+          if (index === a.length - 1) {
+            s += '"' + item.name + '":""}'
+          } else {
+            s += '"' + item.name + '":"",'
+          }
+        })
+        this.form = JSON.parse(s)
+        if (this.searchItem.find(item => item.value === this.selectValue)['options'] !== undefined) {
+          this.optionArray = this.searchItem.find(item => item.value === this.selectValue)['options']
+        }
+        this.active = this.searchItem.find(item => item.value === this.selectValue)['name']
+        this.selectType = this.searchItem.find(item => item.value === this.selectValue)['type']
+      },
+      /***
+       * 清空方法
+       */
+      restForm () {
+        this.form = {}
+        let a = this.searchItem
+        let that = this
+        let s = '{'
+        a.forEach(function (item, index) {
+          if (index === a.length - 1) {
+            s += '"' + item.name + '":""}'
+          } else {
+            s += '"' + item.name + '":"",'
+          }
+        })
+        this.form = JSON.parse(s)
+      },
+      /**
+       * 搜索方法
+       */
+      searchFun () {
+        if (this.search) {
+          this.search(this.form)
+        }
+      },
+      /**
+       * 新增方法
+       */
+      addFun(){
+        if (this.add) {
+          this.add()
+        }
+      }
+    }
+  }
+</script>
+
+<style scoped>
+  .txw-search {
+    width: 100%;
+    border-radius: 0;
+  }
+
+  .txw-search .el-button {
+    border-radius: 0;
+    margin-left: 0;
+  }
+</style>
+
+<!--如果需要进行表格内部字段进行数据转换在父组件传输数据时用 render函数处理如下：
+prop: 'price',
+label: '价格
+minWidth: 130,
+render: row => `${row.price} 元`
+-->
+<template>
+  <div class="txw-table" id="txwTable">
+    <el-table
+      :height="tableHeight"
+      :data="tableData"
+      :border="tableParameter.border"
+      width="100%"
+      :empty-text="tableParameter.emptyText"
+      :row-class-name="tableRowClassName">
+      <el-table-column
+        v-if="tableParameter.selection"
+        type="selection"
+        width="55">
+      </el-table-column>
+      <el-table-column
+        v-for="(item,index) in tableHeader"
+        v-if="item.show !== undefined ? false:true"
+        :key="index"
+        :prop="item.prop"
+        :label="item.label"
+        :width="item.width"
+        :sortable="item.sortable"
+        :align="item.align"
+      >
+      </el-table-column>
+      <el-table-column
+        :label="tableOperation.label"
+        align="center">
+        <template slot-scope="scope">
+          <el-button
+            v-for="(item,index) in tableOperation.options"
+            :key="index"
+            size="mini"
+            :type="item.type"
+            @click="item.handleFun(scope.$index, scope.row)">{{item.text}}
+          </el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+    <el-pagination
+      id="elPagination"
+      @size-change="handleSizeChange"
+      @current-change="handleCurrentChange"
+      :current-page="currentPage"
+      :page-sizes="pageSizes"
+      :page-size="pageSize"
+      layout="total, sizes, prev, pager, next, jumper"
+      :total="total">
+    </el-pagination>
+  </div>
+</template>
+<script>
+  /**
+   *表头
+   *  :tableHeader="[{prop:'后台返回字段{String}',label:'表头展示字段{String}',width:'列宽{{String}}',sortable:'是否排序{boolean}',align:'对齐{String}'}]"
+   *表格数据
+   :tableData="JSON数组"
+   *表格参数
+   :tableParameter="{border:'是否展示边框{boolean}',emptyText:'无数据时提示语{String}',selection:'是否可以多选{boolean}',}"
+   *操作
+   :tableOperation="{
+    options:[
+      {text:'按钮名称{String}',handleFun:'按钮回调函数{Function}',type:'按钮类型{String(primary / success / warning / danger / info / text)}'}
+    ],
+    label:'表头名称{String}'}"
+   */
+  export default {
+    props: {
+      tableHeader: {
+        type: Array,
+        default: () => {
+        }
+      },
+      tableData: {
+        type: Array,
+        default: () => {
+        }
+      },
+      tableParameter: {
+        type: Object,
+        default: () => {
+        }
+      },
+      tableOperation: {
+        type: Object,
+        default: () => {
+        }
+      },
+      pagination: {
+        type: Object,
+        default: () => {
+        }
+      },
+      getTableDataFun: Function
+    },
+    data () {
+      return {
+        //table高度
+        tableHeight: 0,
+        //当前页
+        currentPage: 1,
+        //总条数
+        total: 10,
+        //  总页数
+        pageSizes: ['50', '100', '200', '300'],
+        //  当前条数
+        pageSize: 50
+      }
+    },
+    mounted () {
+      setTimeout(() => {
+        this.tableHeight = document.getElementById('txwTable').offsetHeight - document.getElementById('elPagination').offsetHeight-10
+      }, 200)
+    },
+    methods: {
+      handleSizeChange (val) {
+      },
+      handleCurrentChange (val) {
+        console.log(`当前页: ${val}`)
+      },
+      /**
+       *
+       * @param row 匹配行
+       * @param rowIndex 匹配行index
+       * @returns {string} class
+       */
+      tableRowClassName ({ row, rowIndex }) {
+        if (rowIndex % 2 === 0) {
+          return 'success-row'
+        }
+      }
+    }
+  }
+</script>
+<style scoped>
+
+
+</style>
+
+<template>
+  <el-row>
+    <el-button
+      v-for="(item,index) in BtnParameter"
+      :key="index"
+      :type="item.type" plain @click="item.BtnFun">{{item.text}}
+    </el-button>
+  </el-row>
+</template>
+
+<script>
+  export default {
+    name: 'txw-btn',
+    props: {
+      BtnParameter: {
+        type: Array,
+        default: () => {
+        }
+      }
+    }
+  }
+</script>
+
+<style scoped>
+
+</style>
+
+<template>
+  <div class="txw-form">
+    <el-form :model="form" :rules="verification" ref="form" label-position="right" label-width="50px">
+      <div v-for="(item,index) in formObject.formArray">
+        <el-form-item v-if="item.type=== 'input'" :label="item.label" :prop="item.name" :key="index">
+          <el-input v-model="form[item.name]" :placeholder="item.placeholder"></el-input>
+        </el-form-item>
+        <el-form-item v-if="item.type=== 'select'" :label="item.label" :prop="item.name" :key="index">
+          <el-select v-model="form[item.name]" :placeholder="item.placeholder">
+            <el-option v-for="(A,indexA) in item.options" :label="A.label" :value="A.value"
+                       :key="indexA"></el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item v-if="item.type=== 'date'" :label="item.label" :prop="item.name" :key="index">
+          <el-date-picker type="date" placeholder="选择日期" v-model="form[item.name]"
+                          style="width: 100%;"></el-date-picker>
+        </el-form-item>
+        <el-form-item style="text-align: left" v-if="item.type=== 'checkbox'" :label="item.label" :prop="item.name"
+                      :key="index">
+          <el-checkbox-group v-model="form[item.name]">
+            <el-checkbox v-for="(B,indexB) in item.options" :label="B.label" :name="item.name"
+                         :key="indexB"></el-checkbox>
+          </el-checkbox-group>
+        </el-form-item>
+        <el-form-item style="text-align: left" v-if="item.type=== 'radio'" :label="item.label" :prop="item.name"
+                      :key="index">
+          <el-radio-group v-model="form[item.name]">
+            <el-radio v-for="(C,indexC) in item.options" :label="C.label" :key="indexC"></el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item v-if="item.type=== 'textarea'" :label="item.label" :prop="item.name" :key="index">
+          <el-input type="textarea" v-model="form[item.name]"></el-input>
+        </el-form-item>
+      </div>
+      <div class="txw-form-btn">
+        <el-button @click="resetForm('form')">{{formObject.btn1}}</el-button>
+        <el-button type="primary" @click="submitForm('form')">{{formObject.btn2}}</el-button>
+      </div>
+    </el-form>
+  </div>
+</template>
+<script>
+  /**
+   * 数据格式
+   * {
+   * type:'表单类型（input,select,checkbox,radio,date,textarea）string 必填',
+   * label:'表单名称 （string）必填',
+   * placeholder:'表单提示语（string）选填',
+   * name:'表单取值字段（string）必填',
+   * required: 验证（boolean）必填,  required:true时非空验证
+   * validatorType:'验证规则（string）选填'},
+   *
+   * select数据格式
+   *
+   *
+   * {
+   * type:'select',
+   * label:'',
+   * placeholder:'',
+   * name:'',
+   * required: ,
+   * options:[{
+   *  label:'',
+   *  value:''
+   *  },
+   *  {
+   *  label:'',
+   *  value:''
+   *  }]
+   *  }
+   *
+   *  checkebox,radio数据格式
+   *
+   *
+   *  {
+   *  type:'checkbox',
+   *  label:'',
+   *  name:'',
+   *  required: true,
+   *  options:[{
+   *  label:''
+   *  },
+   *  {
+   *  label:''
+   *  }]
+   *  }
+   *
+   *
+   */
+
+  import verification from '../assets/js/verification'
+
+  export default {
+    props: {
+      formObject: {
+        type: Object,
+        default: () => {
+        }
+      }
+    },
+    created () {
+      /*****
+       * 动态设置mode
+       * @type {formObject|{type, default}} 父组件传入值
+       */
+      let a = this.formObject.formArray
+      let s = '{'
+      let b = '{'
+      a.forEach(function (item, index) {
+        item.required === undefined ? item.required = false : null
+        item.validatorType === undefined ? item.validatorType = false : null
+        if (index === a.length - 1) {
+          if (item.type === 'checkbox') {
+            s += '"' + item.name + '":[]}'
+          } else {
+            s += '"' + item.name + '":""}'
+          }
+
+
+          if (item.type === 'select' || item.type === 'checkbox') {
+            b += '"' + item.name + '":{\"required\":\"' + item.required + '\",\"validatorType\":\"' + item.validatorType + '\",\"trigger\":\"change\"}}'
+          } else {
+            b += '"' + item.name + '":{\"required\":\"' + item.required + '\",\"validatorType\":\"' + item.validatorType + '\",\"trigger\":\"blur\"}}'
+          }
+        } else {
+          if (item.type === 'checkbox') {
+            s += '"' + item.name + '":[],'
+          } else {
+            s += '"' + item.name + '":"",'
+          }
+          if (item.type === 'select' || item.type === 'checkbox' || item.type === 'radio') {
+            b += '"' + item.name + '":{\"required\":\"' + item.required + '\",\"validatorType\":\"' + item.validatorType + '\",\"trigger\":\"change\"},'
+          } else {
+            b += '"' + item.name + '":{\"required\":\"' + item.required + '\",\"validatorType\":\"' + item.validatorType + '\",\"trigger\":\"blur\"},'
+          }
+        }
+      })
+      this.form = JSON.parse(s)
+      let c = JSON.parse(b)
+      console.log(c)
+      for (let i in c) {
+        c[i].validator = this.check
+      }
+      this.verification = c
+    },
+    data () {
+      return {
+        form: {},
+        verification: {}
+      }
+    },
+    methods: {
+      /**
+       * 表单提交
+       * @param formName form对象
+       */
+      submitForm (formName) {
+        this.$refs[formName].validate(function(resolve, reject){
+          //做一些异步操作
+          console.log(resolve)
+          console.log(reject)
+        })
+        // var p = new Promise(function(resolve, reject){
+        //   //做一些异步操作
+        // });
+          // .then(res => {
+          // console.log(res)
+          // if (boolean) {
+          //   alert('submit!')
+          // } else {
+          //   return false
+          // }
+        // })
+      },
+      /**
+       * 表单重置
+       * @param formName form对象
+       */
+      resetForm (formName) {
+
+        this.$refs[formName].resetFields()
+      },
+      /**
+       * 表单验证方法
+       * @param rules  验证规则
+       * @param value  表单值
+       * @param callback  回调函数
+       */
+      check: (rules, value, callback) => {
+        verification.verificationForm(rules, value, callback)
+      }
+    }
+  }
+</script>
